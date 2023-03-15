@@ -41,4 +41,8 @@ public class RocksDBAccess {
         RocksIterator iterator = rocksDB.newIterator(handle);
         return new RocksDBRangeIterator(iterator, start, end);
     }
+
+    public void deleteRange(@Nonnull ByteBuffer start, @Nonnull ByteBuffer end) throws RocksDBException {
+        rocksDB.deleteRange(handle, writeOptions, start.array(), end.array());
+    }
 }

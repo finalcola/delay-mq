@@ -55,7 +55,11 @@ public class RocksDBStore {
         rocksDBAccessMap.get(partitionId).batchPut(kevValuePairs);
     }
 
-    public RocksDBRangeIterator range(int partitionId, ByteBuffer start, ByteBuffer end) {
+    public void deleteRange(int partitionId, @Nonnull ByteBuffer start, @Nonnull ByteBuffer end) throws RocksDBException {
+        rocksDBAccessMap.get(partitionId).deleteRange(start, end);
+    }
+
+    public RocksDBRangeIterator range(int partitionId, @Nonnull ByteBuffer start, @Nonnull ByteBuffer end) {
         return rocksDBAccessMap.get(partitionId).range(start, end);
     }
 
