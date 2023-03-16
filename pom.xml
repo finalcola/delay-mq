@@ -6,7 +6,7 @@
 
     <groupId>org.finalcola</groupId>
     <artifactId>delay-mq</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>${projectVersion}</version>
     <modules>
         <module>delay-mq-broker</module>
         <module>delay-mq-common</module>
@@ -14,11 +14,23 @@
     <packaging>pom</packaging>
 
     <properties>
+        <projectVersion>1.0</projectVersion>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
     <dependencyManagement>
-
+        <dependencies>
+            <dependency>
+                <groupId>org.finalcola</groupId>
+                <artifactId>delay-mq-broker</artifactId>
+                <version>${projectVersion}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.finalcola</groupId>
+                <artifactId>delay-mq-common</artifactId>
+                <version>${projectVersion}</version>
+            </dependency>
+        </dependencies>
     </dependencyManagement>
 </project>

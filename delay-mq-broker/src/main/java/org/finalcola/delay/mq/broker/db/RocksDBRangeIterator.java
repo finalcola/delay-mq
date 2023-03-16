@@ -2,6 +2,8 @@ package org.finalcola.delay.mq.broker.db;
 
 import org.rocksdb.RocksIterator;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 
@@ -9,7 +11,7 @@ import java.util.Iterator;
  * @author: finalcola
  * @date: 2023/3/15 22:48
  */
-public class RocksDBRangeIterator implements Iterator<KevValuePair> {
+public class RocksDBRangeIterator implements Iterator<KevValuePair>, Closeable {
     private final RocksIterator rocksIterator;
     private final ByteBuffer start;
     private final ByteBuffer end;
@@ -39,15 +41,25 @@ public class RocksDBRangeIterator implements Iterator<KevValuePair> {
     }
 
     private KevValuePair makeNext() {
+        if (!rocksIterator.isValid()) {
+            return null;
+        }
         byte[] key = rocksIterator.key();
         if (key == null || key.length <= 0) {
             return null;
         }
-        ByteBuffer value = ByteBuffer.wrap(rocksIterator.value());
-        if (value.compareTo(end) > 0) {
+        ByteBuffer keyBuffer = ByteBuffer.wrap(key);
+        if (keyBuffer.compareTo(end) > 0) {
             return null;
         }
+        ByteBuffer value = ByteBuffer.wrap(rocksIterator.value());
         rocksIterator.next();
-        return new KevValuePair(ByteBuffer.wrap(key), value);
+        return new KevValuePair(keyBuffer, value);
+    }
+
+    @Override
+    public void close() throws IOException {
+        next = null;
+        rocksIterator.close();
     }
 }

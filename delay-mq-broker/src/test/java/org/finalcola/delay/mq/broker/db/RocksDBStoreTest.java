@@ -1,12 +1,15 @@
 package org.finalcola.delay.mq.broker.db;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.rocksdb.RocksDBException;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -16,6 +19,7 @@ import java.util.stream.Stream;
  * @author: shanshan
  * @date: 2023/3/15 23:01
  */
+@Slf4j
 public class RocksDBStoreTest {
 
     private RocksDBStore store;
@@ -32,25 +36,33 @@ public class RocksDBStoreTest {
     }
 
     @Test
-    public void putAndRange() throws RocksDBException {
+    public void putAndRange() throws RocksDBException, IOException {
+        long now = System.currentTimeMillis();
+        Function<Integer, Stream<String>> keyFormatter = i -> {
+            String keyPrefix = String.valueOf(now + i);
+            return Stream.of(keyPrefix + "_aaa", keyPrefix + "_bbb");
+        };
+
         List<KevValuePair> pairList = IntStream.range(0, 10)
                 .boxed()
                 .flatMap(i -> {
-                    String key = i + "_k";
-                    String key2 = i + "_t";
-                    String value = i + "";
-                    KevValuePair pair1 = new KevValuePair(ByteBuffer.wrap(key.getBytes()), ByteBuffer.wrap(value.getBytes()));
-                    KevValuePair pair2 = new KevValuePair(ByteBuffer.wrap(key2.getBytes()), ByteBuffer.wrap(value.getBytes()));
-                    return Stream.of(pair1, pair2);
+                    return keyFormatter.apply(i)
+                            .peek(k -> log.info("key:{}", k))
+                            .map(k -> new KevValuePair(k, String.valueOf(i)));
                 })
                 .collect(Collectors.toList());
         store.put(0, pairList);
-        RocksDBRangeIterator iterator = store.range(0, ByteBuffer.wrap("1".getBytes()), ByteBuffer.wrap("5".getBytes()));
-        iterator.forEachRemaining(pair -> {
-            String key = new String(pair.getKey().array());
-            String value = new String(pair.getValue().array());
-            System.out.printf("%s -> %s%n", key, value);
-        });
+
+        ByteBuffer start = wrap(keyFormatter.apply(5).findFirst().get());
+        ByteBuffer end = wrap(keyFormatter.apply(10).findFirst().get());
+        try (RocksDBRangeIterator iterator = store.range(0, start, end)) {
+            iterator.forEachRemaining(pair -> {
+                String key = new String(pair.getKey().array());
+                String value = new String(pair.getValue().array());
+//                System.out.printf("%s -> %s%n", key, value);
+                log.info("k:{} v:{}", key, value);
+            });
+        }
     }
 
     @Test
@@ -59,6 +71,10 @@ public class RocksDBStoreTest {
 
     @Test
     public void range() {
+    }
+
+    private ByteBuffer wrap(String str) {
+        return ByteBuffer.wrap(str.getBytes());
     }
 
     private RocksDBConfig createDBConfig() {

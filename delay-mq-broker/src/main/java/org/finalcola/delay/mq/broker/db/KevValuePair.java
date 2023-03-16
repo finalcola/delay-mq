@@ -14,4 +14,8 @@ import java.nio.ByteBuffer;
 public class KevValuePair {
     private final ByteBuffer key;
     private final ByteBuffer value;
+
+    public KevValuePair(String key, String value) {
+        this(ByteBuffer.wrap(key.getBytes()), ByteBuffer.wrap(value.getBytes()));
+    }
 }
