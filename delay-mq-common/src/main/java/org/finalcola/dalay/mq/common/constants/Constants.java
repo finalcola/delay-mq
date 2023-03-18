@@ -6,4 +6,9 @@ package org.finalcola.dalay.mq.common.constants;
  */
 public class Constants {
     public static final String DELAY_MSG_TOPIC = "finalcola-delay-mq";
+
+    public static final String CONSUMER_GROUP = "delay-mq-consumer-group";
+
+    public static final String PRODUCER_GROUP = "delay-mq-producer-group";
+
 }

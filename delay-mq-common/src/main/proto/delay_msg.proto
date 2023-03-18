@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package org.finalcola.delay.mq.broker;
+package org.finalcola.delay.mq.common;
 
-option java_package = "org.finalcola.delay.mq.broker.proto";
+option java_package = "org.finalcola.delay.mq.common.proto";
 option java_outer_classname = "DelayMessageProto";
 option java_multiple_files = true;
 

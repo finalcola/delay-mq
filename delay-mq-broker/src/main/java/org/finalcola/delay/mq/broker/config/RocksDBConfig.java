@@ -1,4 +1,4 @@
-package org.finalcola.delay.mq.broker.db;
+package org.finalcola.delay.mq.broker.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

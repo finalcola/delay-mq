@@ -1,5 +1,6 @@
 package org.finalcola.delay.mq.broker.db;
 
+import org.finalcola.delay.mq.broker.model.KevValuePair;
 import org.rocksdb.RocksIterator;
 
 import java.io.Closeable;
