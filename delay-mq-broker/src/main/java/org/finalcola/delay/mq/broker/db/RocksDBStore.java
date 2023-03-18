@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class RocksDBStore {
 
+    @Getter
     private final RocksDBConfig config;
     @Getter
     private volatile boolean isRunning;

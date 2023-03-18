@@ -1,6 +1,5 @@
 package org.finalcola.delay.mq.broker.producer;
 
-import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -20,7 +19,6 @@ import java.util.stream.Collectors;
  * @author: finalcola
  * @date: 2023/3/18 21:47
  */
-@AllArgsConstructor
 public class RocketProducer implements Producer {
 
     private DefaultMQProducer producer;
@@ -49,7 +47,7 @@ public class RocketProducer implements Producer {
                     return new Message(metaData.getTopic(), metaData.getTags(), metaData.getMsgKey(), delayMsg.getBody().toByteArray());
                 })
                 .collect(Collectors.toList());
-        final SendResult sendResult = producer.send(messageList);
+        final SendResult sendResult = mqProducer.send(messageList);
         return Optional.ofNullable(sendResult)
                 .map(SendResult::getSendStatus)
                 .filter(SendStatus.SEND_OK::equals)
