@@ -1,6 +1,7 @@
 package org.finalcola.delay.mq.broker.convert;
 
 import com.google.common.base.Joiner;
+import org.apache.commons.lang3.StringUtils;
 import org.finalcola.delay.mq.common.proto.DelayMsg;
 import org.finalcola.delay.mq.common.proto.MetaData;
 import org.finalcola.delay.mq.common.proto.MsgDataWrapper;
@@ -16,11 +17,25 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class MsgConverter {
 
+    public static ByteBuffer toByteBuffer(String str) {
+        if (StringUtils.isEmpty(str)) {
+            return ByteBuffer.wrap(new byte[0]);
+        }
+        return ByteBuffer.wrap(str.getBytes(UTF_8));
+    }
+
+    public static String toString(ByteBuffer byteBuffer) {
+        if (byteBuffer == null) {
+            return "";
+        }
+        return new String(byteBuffer.array(), UTF_8);
+    }
+
     public static ByteBuffer buildKey(@Nonnull DelayMsg msg) {
         MetaData metaData = msg.getMetaData();
         String keyStr = Joiner.on("|")
                 .join(metaData.getDelayMills(), metaData.getTopic(), metaData.getMsgId());
-        return ByteBuffer.wrap(keyStr.getBytes(UTF_8));
+        return toByteBuffer(keyStr);
     }
 
     public static DelayMsg buildDelayMsg(String msgId, MsgDataWrapper wrapper) {

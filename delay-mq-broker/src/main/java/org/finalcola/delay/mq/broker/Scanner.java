@@ -3,6 +3,7 @@ package org.finalcola.delay.mq.broker;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.finalcola.delay.mq.broker.config.BrokerConfig;
+import org.finalcola.delay.mq.broker.convert.MsgConverter;
 import org.finalcola.delay.mq.broker.db.RocksDBRangeIterator;
 import org.finalcola.delay.mq.broker.db.RocksDBStore;
 import org.finalcola.delay.mq.broker.model.KevValuePair;
@@ -10,9 +11,10 @@ import org.finalcola.delay.mq.broker.model.ScanResult;
 import org.finalcola.delay.mq.common.proto.DelayMsg;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.finalcola.delay.mq.broker.convert.MsgConverter.toByteBuffer;
 
 /**
  * @author: finalcola
@@ -26,17 +28,16 @@ public class Scanner {
 
     @SneakyThrows
     public ScanResult scan(int partitionId, String startKey) {
-        ByteBuffer endKey = ByteBuffer.wrap(
-                String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8));
+        ByteBuffer endKey = toByteBuffer(String.valueOf(System.currentTimeMillis()));
 //      RocksDBRangeIterator rangeIterator = ;
-        final ByteBuffer startKeyBuffer = ByteBuffer.wrap(startKey.getBytes(StandardCharsets.UTF_8));
-        String lastStoreKey = null;
+        final ByteBuffer startKeyBuffer = toByteBuffer(startKey);
         int counter = 0;
         List<DelayMsg> delayMsgs = new ArrayList<>();
+        ByteBuffer lastStoreKey = null;
         try (RocksDBRangeIterator range = rocksDBStore.range(partitionId, startKeyBuffer, endKey)) {
             while (range.hasNext()) {
                 final KevValuePair kevValuePair = range.next();
-                lastStoreKey = new String(kevValuePair.getKey().array(), StandardCharsets.UTF_8);
+                lastStoreKey = kevValuePair.getKey();
                 delayMsgs.add(DelayMsg.parseFrom(kevValuePair.getValue()));
                 counter++;
                 if (counter > brokerConfig.getScanMsgBatchSize()) {
@@ -44,6 +45,6 @@ public class Scanner {
                 }
             }
         }
-        return new ScanResult(lastStoreKey, delayMsgs);
+        return new ScanResult(MsgConverter.toString(lastStoreKey), delayMsgs);
     }
 }

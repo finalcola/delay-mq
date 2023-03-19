@@ -1,11 +1,15 @@
 package org.finalcola.delay.mq.broker;
 
+import lombok.SneakyThrows;
 import org.finalcola.delay.mq.broker.config.BrokerConfig;
 import org.finalcola.delay.mq.broker.config.MqConfig;
 import org.finalcola.delay.mq.broker.config.RocksDBConfig;
-import org.finalcola.delay.mq.broker.consumer.Consumer;
 import org.finalcola.delay.mq.broker.db.RocksDBStore;
-import org.finalcola.delay.mq.broker.producer.Producer;
+
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * @author: finalcola
@@ -16,13 +20,12 @@ public class DelayMessageBroker {
     private final BrokerConfig brokerConfig;
     private final MqConfig mqConfig;
     private final RocksDBConfig rocksDBConfig;
+    private MetaHolder metaHolder = new MetaHolder();
 
     private RocksDBStore rocksDBStore;
-
-    private Consumer consumer;
-    private Producer producer;
     private Scanner scanner;
-    private MetaHolder metaHolder = new MetaHolder();
+    private Map<Integer, MessageInput> messageInputMap;
+    private Map<Integer, MessageOutput> messageOutputMap;
 
     public DelayMessageBroker(BrokerConfig brokerConfig, MqConfig mqConfig, RocksDBConfig rocksDBConfig) {
         this.brokerConfig = brokerConfig;
@@ -30,19 +33,32 @@ public class DelayMessageBroker {
         this.rocksDBConfig = rocksDBConfig;
     }
 
+    @SneakyThrows
     public synchronized void start() {
         // 初始化DB
         rocksDBStore = new RocksDBStore(rocksDBConfig);
-        // 初始化mq组件
-        initMq();
+        rocksDBStore.start();
         // 初始化scanner
         scanner = new Scanner(brokerConfig, rocksDBStore);
+        initMessageInput();
+        initMessageOutput();
 
-        producer.start(mqConfig);
-        // TODO: 2023/3/18 启动其他组件
+        // 启动组件
+        messageInputMap.values().forEach(MessageInput::start);
+        messageOutputMap.values().forEach(MessageOutput::start);
     }
 
-    private void initMq() {
+    private void initMessageInput() {
+        int partitionCount = rocksDBConfig.getPartitionCount();
+        messageInputMap = IntStream.range(0, partitionCount)
+                .mapToObj(partitionId -> new MessageInput(partitionId, mqConfig, rocksDBStore))
+                .collect(Collectors.toMap(MessageInput::getPartitionId, Function.identity()));
+    }
 
+    private void initMessageOutput() {
+        int partitionCount = rocksDBConfig.getPartitionCount();
+        messageOutputMap = IntStream.range(0, partitionCount)
+                .mapToObj(partitionId -> new MessageOutput(partitionId, metaHolder, mqConfig, scanner))
+                .collect(Collectors.toMap(MessageOutput::getPartitionId, Function.identity()));
     }
 }

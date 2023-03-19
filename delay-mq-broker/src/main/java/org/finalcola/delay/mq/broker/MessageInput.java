@@ -1,9 +1,11 @@
 package org.finalcola.delay.mq.broker;
 
-import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.finalcola.dalay.mq.common.constants.MqType;
 import org.finalcola.dalay.mq.common.utils.RetryUtils;
+import org.finalcola.delay.mq.broker.config.ExecutorDef;
 import org.finalcola.delay.mq.broker.config.MqConfig;
 import org.finalcola.delay.mq.broker.consumer.Consumer;
 import org.finalcola.delay.mq.broker.consumer.RocketConsumer;
@@ -14,24 +16,44 @@ import org.finalcola.delay.mq.common.proto.DelayMsg;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static org.finalcola.dalay.mq.common.utils.MoreFunctions.runCatching;
 
 /**
  * @author: finalcola
  * @date: 2023/3/18 23:47
  */
-@AllArgsConstructor
+@Slf4j
 public class MessageInput implements Runnable {
 
-    private final RocksDBStore store;
-    private final MqConfig mqConfig;
+    @Getter
     private final int partitionId;
+    private final MqConfig mqConfig;
+    private final RocksDBStore store;
     private volatile Consumer consumer;
     private volatile boolean isRunning = false;
+
+    public MessageInput(int partitionId, MqConfig mqConfig, RocksDBStore store) {
+        this.partitionId = partitionId;
+        this.mqConfig = mqConfig;
+        this.store = store;
+    }
 
     public synchronized void start() {
         consumer = createConsumer(mqConfig);
         isRunning = true;
+        ExecutorDef.MSG_INPUT_EXECUTOR.submit(() -> {
+            while (isRunning) {
+                try {
+                    this.run();
+                } catch (Exception e) {
+                    log.info("message input pull error", e);
+                    runCatching(() -> TimeUnit.SECONDS.sleep(1));
+                }
+            }
+        });
     }
 
     public synchronized void stop() {
