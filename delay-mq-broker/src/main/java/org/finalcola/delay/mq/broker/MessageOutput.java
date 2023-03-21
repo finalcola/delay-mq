@@ -14,6 +14,7 @@ import org.finalcola.delay.mq.broker.model.ScanResult;
 import org.finalcola.delay.mq.broker.producer.Producer;
 import org.finalcola.delay.mq.broker.producer.RocketProducer;
 import org.finalcola.delay.mq.common.proto.DelayMsg;
+import org.joda.time.DateTime;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * @date: 2023/3/19 13:51
  */
 @Slf4j
-public class MessageOutput implements Runnable {
+public class MessageOutput {
 
     private static final String DEFAULT_START_KEY = StringUtils.repeat("0", 13);
     @Getter
@@ -50,7 +51,15 @@ public class MessageOutput implements Runnable {
         ExecutorDef.MSG_OUTPUT_EXECUTOR.submit(() -> {
             if (isRunning) {
                 try {
-                    this.run();
+                    long count = this.sendMsg();
+                    if (count <= 0) {
+                        // 到期消息已经处理完成或者出现异常进行退让
+                        long nextExecuteTime = DateTime.now().plusSeconds(1).withMillisOfSecond(0).getMillis();
+                        long gap = nextExecuteTime - System.currentTimeMillis();
+                        if (gap > 0) {
+                            TimeUnit.MILLISECONDS.sleep(gap);
+                        }
+                    }
                 } catch (Exception e) {
                     log.error("message output error", e);
                     MoreFunctions.runCatching(() -> TimeUnit.SECONDS.sleep(1));
@@ -65,23 +74,29 @@ public class MessageOutput implements Runnable {
         producer = null;
     }
 
-    @Override
     @SneakyThrows
-    public void run() {
+    public long sendMsg() {
         String lastHandledKey = metaHolder.getLastHandledKey();
         String startKey = StringUtils.firstNonEmpty(lastHandledKey, DEFAULT_START_KEY);
-        ScanResult scanResult = scanner.scan(partitionId, startKey);
-        String lastMsgStoreKey = scanResult.getLastMsgStoreKey();
-
-        // 发送消息
-        List<DelayMsg> delayMsgs = scanResult.getDelayMsgs();
-        if (CollectionUtils.isEmpty(delayMsgs)) {
-            return;
+        int counter = 0;
+        boolean sendFail = false;
+        while (true) {
+            ScanResult scanResult = scanner.scan(partitionId, startKey, false);
+            String lastMsgStoreKey = scanResult.getLastMsgStoreKey();
+            if (lastMsgStoreKey == null || CollectionUtils.isEmpty(scanResult.getDelayMsgs())) {
+                break;
+            }
+            // 发送消息
+            List<DelayMsg> delayMsgs = scanResult.getDelayMsgs();
+            Boolean sendResult = RetryUtils.retry(10, () -> producer.send(delayMsgs));
+            if (!sendResult) {
+                sendFail = true;
+                break;
+            }
+            metaHolder.setLastHandledKey(lastHandledKey, lastMsgStoreKey);
+            counter += delayMsgs.size();
         }
-        Boolean sendResult = RetryUtils.retry(10, () -> producer.send(delayMsgs));
-        if (sendResult) {
-            metaHolder.setLastHandledKey(lastMsgStoreKey);
-        }
+        return sendFail ? -1 : counter;
     }
 
     private Producer createProducer() {

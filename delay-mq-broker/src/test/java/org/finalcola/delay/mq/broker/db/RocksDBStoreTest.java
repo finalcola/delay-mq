@@ -2,7 +2,7 @@ package org.finalcola.delay.mq.broker.db;
 
 import lombok.extern.slf4j.Slf4j;
 import org.finalcola.delay.mq.broker.config.RocksDBConfig;
-import org.finalcola.delay.mq.broker.model.KevValuePair;
+import org.finalcola.delay.mq.broker.model.KeyValuePair;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,12 +45,12 @@ public class RocksDBStoreTest {
             return Stream.of(keyPrefix + "_aaa", keyPrefix + "_bbb");
         };
 
-        List<KevValuePair> pairList = IntStream.range(0, 10)
+        List<KeyValuePair> pairList = IntStream.range(0, 10)
                 .boxed()
                 .flatMap(i -> {
                     return keyFormatter.apply(i)
                             .peek(k -> log.info("key:{}", k))
-                            .map(k -> new KevValuePair(k, String.valueOf(i)));
+                            .map(k -> new KeyValuePair(k, String.valueOf(i)));
                 })
                 .collect(Collectors.toList());
         store.put(0, pairList);

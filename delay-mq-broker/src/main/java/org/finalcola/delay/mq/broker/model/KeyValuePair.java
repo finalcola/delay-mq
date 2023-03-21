@@ -11,11 +11,11 @@ import java.nio.ByteBuffer;
  */
 @Data
 @AllArgsConstructor
-public class KevValuePair {
+public class KeyValuePair {
     private final ByteBuffer key;
     private final ByteBuffer value;
 
-    public KevValuePair(String key, String value) {
+    public KeyValuePair(String key, String value) {
         this(ByteBuffer.wrap(key.getBytes()), ByteBuffer.wrap(value.getBytes()));
     }
 }

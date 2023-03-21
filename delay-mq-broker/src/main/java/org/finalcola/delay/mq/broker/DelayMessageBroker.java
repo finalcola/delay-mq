@@ -48,6 +48,12 @@ public class DelayMessageBroker {
         messageOutputMap.values().forEach(MessageOutput::start);
     }
 
+    public void stop() {
+        messageInputMap.values().forEach(MessageInput::stop);
+        messageInputMap.values().forEach(MessageInput::stop);
+        rocksDBStore.stop();
+    }
+
     private void initMessageInput() {
         int partitionCount = rocksDBConfig.getPartitionCount();
         messageInputMap = IntStream.range(0, partitionCount)

@@ -3,7 +3,7 @@ package org.finalcola.delay.mq.broker.db;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
-import org.finalcola.delay.mq.broker.model.KevValuePair;
+import org.finalcola.delay.mq.broker.model.KeyValuePair;
 import org.rocksdb.*;
 
 import javax.annotation.Nonnull;
@@ -23,16 +23,16 @@ public class RocksDBAccess {
     private final WriteOptions writeOptions = new WriteOptions()
             .setSync(false);
 
-    public void put(@Nonnull KevValuePair pair) throws RocksDBException {
+    public void put(@Nonnull KeyValuePair pair) throws RocksDBException {
         rocksDB.put(handle, writeOptions, pair.getKey().array(), pair.getValue().array());
     }
 
-    public void batchPut(@Nonnull List<KevValuePair> kevValuePairs) throws RocksDBException {
-        if (CollectionUtils.isEmpty(kevValuePairs)) {
+    public void batchPut(@Nonnull List<KeyValuePair> keyValuePairs) throws RocksDBException {
+        if (CollectionUtils.isEmpty(keyValuePairs)) {
             return;
         }
         WriteBatch writeBatch = new WriteBatch();
-        for (KevValuePair pair : kevValuePairs) {
+        for (KeyValuePair pair : keyValuePairs) {
             writeBatch.put(handle, pair.getKey().array(), pair.getValue().array());
         }
         rocksDB.write(writeOptions, writeBatch);

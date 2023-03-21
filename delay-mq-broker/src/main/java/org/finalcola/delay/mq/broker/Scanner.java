@@ -6,7 +6,7 @@ import org.finalcola.delay.mq.broker.config.BrokerConfig;
 import org.finalcola.delay.mq.broker.convert.MsgConverter;
 import org.finalcola.delay.mq.broker.db.RocksDBRangeIterator;
 import org.finalcola.delay.mq.broker.db.RocksDBStore;
-import org.finalcola.delay.mq.broker.model.KevValuePair;
+import org.finalcola.delay.mq.broker.model.KeyValuePair;
 import org.finalcola.delay.mq.broker.model.ScanResult;
 import org.finalcola.delay.mq.common.proto.DelayMsg;
 
@@ -27,18 +27,21 @@ public class Scanner {
     private final RocksDBStore rocksDBStore;
 
     @SneakyThrows
-    public ScanResult scan(int partitionId, String startKey) {
+    public ScanResult scan(int partitionId, String startKey, boolean includeStart) {
         ByteBuffer endKey = toByteBuffer(String.valueOf(System.currentTimeMillis()));
-//      RocksDBRangeIterator rangeIterator = ;
         final ByteBuffer startKeyBuffer = toByteBuffer(startKey);
         int counter = 0;
         List<DelayMsg> delayMsgs = new ArrayList<>();
         ByteBuffer lastStoreKey = null;
         try (RocksDBRangeIterator range = rocksDBStore.range(partitionId, startKeyBuffer, endKey)) {
             while (range.hasNext()) {
-                final KevValuePair kevValuePair = range.next();
-                lastStoreKey = kevValuePair.getKey();
-                delayMsgs.add(DelayMsg.parseFrom(kevValuePair.getValue()));
+                if (!includeStart) {
+                    includeStart = true;
+                    continue;
+                }
+                final KeyValuePair keyValuePair = range.next();
+                lastStoreKey = keyValuePair.getKey();
+                delayMsgs.add(DelayMsg.parseFrom(keyValuePair.getValue()));
                 counter++;
                 if (counter > brokerConfig.getScanMsgBatchSize()) {
                     break;

@@ -1,6 +1,6 @@
 package org.finalcola.delay.mq.broker.db;
 
-import org.finalcola.delay.mq.broker.model.KevValuePair;
+import org.finalcola.delay.mq.broker.model.KeyValuePair;
 import org.rocksdb.RocksIterator;
 
 import java.io.Closeable;
@@ -12,11 +12,11 @@ import java.util.Iterator;
  * @author: finalcola
  * @date: 2023/3/15 22:48
  */
-public class RocksDBRangeIterator implements Iterator<KevValuePair>, Closeable {
+public class RocksDBRangeIterator implements Iterator<KeyValuePair>, Closeable {
     private final RocksIterator rocksIterator;
     private final ByteBuffer start;
     private final ByteBuffer end;
-    private KevValuePair next;
+    private KeyValuePair next;
 
     public RocksDBRangeIterator(RocksIterator rocksIterator, ByteBuffer start, ByteBuffer end) {
         this.rocksIterator = rocksIterator;
@@ -27,13 +27,13 @@ public class RocksDBRangeIterator implements Iterator<KevValuePair>, Closeable {
 
     @Override
     public boolean hasNext() {
-        KevValuePair makeResult = makeNext();
+        KeyValuePair makeResult = makeNext();
         this.next = makeResult;
         return makeResult != null;
     }
 
     @Override
-    public KevValuePair next() {
+    public KeyValuePair next() {
         try {
             return next;
         } finally {
@@ -41,7 +41,7 @@ public class RocksDBRangeIterator implements Iterator<KevValuePair>, Closeable {
         }
     }
 
-    private KevValuePair makeNext() {
+    private KeyValuePair makeNext() {
         if (!rocksIterator.isValid()) {
             return null;
         }
@@ -55,7 +55,7 @@ public class RocksDBRangeIterator implements Iterator<KevValuePair>, Closeable {
         }
         ByteBuffer value = ByteBuffer.wrap(rocksIterator.value());
         rocksIterator.next();
-        return new KevValuePair(keyBuffer, value);
+        return new KeyValuePair(keyBuffer, value);
     }
 
     @Override

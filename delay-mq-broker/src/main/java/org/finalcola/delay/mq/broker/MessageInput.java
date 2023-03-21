@@ -11,7 +11,7 @@ import org.finalcola.delay.mq.broker.consumer.Consumer;
 import org.finalcola.delay.mq.broker.consumer.RocketConsumer;
 import org.finalcola.delay.mq.broker.convert.MsgConverter;
 import org.finalcola.delay.mq.broker.db.RocksDBStore;
-import org.finalcola.delay.mq.broker.model.KevValuePair;
+import org.finalcola.delay.mq.broker.model.KeyValuePair;
 import org.finalcola.delay.mq.common.proto.DelayMsg;
 
 import java.nio.ByteBuffer;
@@ -73,15 +73,15 @@ public class MessageInput implements Runnable {
         if (CollectionUtils.isEmpty(delayMsgs)) {
             return;
         }
-        List<KevValuePair> kevValuePairs = delayMsgs.stream()
+        List<KeyValuePair> keyValuePairs = delayMsgs.stream()
                 .map(msg -> {
                     ByteBuffer key = MsgConverter.buildKey(msg);
                     ByteBuffer value = ByteBuffer.wrap(msg.toByteArray());
-                    return new KevValuePair(key, value);
+                    return new KeyValuePair(key, value);
                 })
                 .collect(Collectors.toList());
         RetryUtils.retry(10, () -> {
-            store.put(partitionId, kevValuePairs);
+            store.put(partitionId, keyValuePairs);
         });
     }
 

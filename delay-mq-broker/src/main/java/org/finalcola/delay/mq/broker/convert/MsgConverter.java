@@ -7,6 +7,7 @@ import org.finalcola.delay.mq.common.proto.MetaData;
 import org.finalcola.delay.mq.common.proto.MsgDataWrapper;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -17,6 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class MsgConverter {
 
+    @Nonnull
     public static ByteBuffer toByteBuffer(String str) {
         if (StringUtils.isEmpty(str)) {
             return ByteBuffer.wrap(new byte[0]);
@@ -24,9 +26,10 @@ public class MsgConverter {
         return ByteBuffer.wrap(str.getBytes(UTF_8));
     }
 
+    @Nullable
     public static String toString(ByteBuffer byteBuffer) {
         if (byteBuffer == null) {
-            return "";
+            return null;
         }
         return new String(byteBuffer.array(), UTF_8);
     }

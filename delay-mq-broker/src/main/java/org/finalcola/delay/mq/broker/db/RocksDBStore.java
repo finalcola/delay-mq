@@ -2,7 +2,7 @@ package org.finalcola.delay.mq.broker.db;
 
 import lombok.Getter;
 import org.finalcola.delay.mq.broker.config.RocksDBConfig;
-import org.finalcola.delay.mq.broker.model.KevValuePair;
+import org.finalcola.delay.mq.broker.model.KeyValuePair;
 import org.rocksdb.*;
 
 import javax.annotation.Nonnull;
@@ -54,8 +54,8 @@ public class RocksDBStore {
         rocksDB.close();
     }
 
-    public void put(int partitionId, @Nonnull List<KevValuePair> kevValuePairs) throws RocksDBException {
-        rocksDBAccessMap.get(partitionId).batchPut(kevValuePairs);
+    public void put(int partitionId, @Nonnull List<KeyValuePair> keyValuePairs) throws RocksDBException {
+        rocksDBAccessMap.get(partitionId).batchPut(keyValuePairs);
     }
 
     public void deleteRange(int partitionId, @Nonnull ByteBuffer start, @Nonnull ByteBuffer end) throws RocksDBException {
