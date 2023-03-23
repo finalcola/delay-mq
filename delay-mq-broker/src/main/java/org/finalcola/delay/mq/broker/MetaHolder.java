@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
  * @date: 2023/3/18 13:14
  */
 public class MetaHolder {
+    // TODO: 2023/3/23 系统启动、退出以及定时调度时，保存到rocksDB,进行持久化
     private static final AtomicReferenceFieldUpdater<MetaHolder, String> LAST_HANDLE_TIME_UPDATER =
             AtomicReferenceFieldUpdater.newUpdater(MetaHolder.class, String.class, "lastHandledKey");
     private volatile String lastHandledKey = StringUtils.repeat("0", 13);
