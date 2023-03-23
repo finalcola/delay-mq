@@ -11,6 +11,7 @@ import org.finalcola.delay.mq.broker.model.ScanResult;
 import org.finalcola.delay.mq.common.proto.DelayMsg;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,15 +40,17 @@ public class Scanner {
         ByteBuffer lastStoreKey = null;
         try (RocksDBRangeIterator range = rocksDBStore.range(partitionId, startKeyBuffer, endKey)) {
             while (range.hasNext()) {
+                final KeyValuePair keyValuePair = range.next();
                 if (!includeStart) {
                     includeStart = true;
-                    continue;
+                    if (startKey.equals(new String(keyValuePair.getKey().array(), StandardCharsets.UTF_8))) {
+                        continue;
+                    }
                 }
-                final KeyValuePair keyValuePair = range.next();
                 lastStoreKey = keyValuePair.getKey();
                 delayMsgs.add(DelayMsg.parseFrom(keyValuePair.getValue()));
                 counter++;
-                if (counter > brokerConfig.getScanMsgBatchSize()) {
+                if (counter >= brokerConfig.getScanMsgBatchSize()) {
                     break;
                 }
             }

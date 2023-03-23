@@ -14,7 +14,6 @@ import org.finalcola.delay.mq.broker.model.ScanResult;
 import org.finalcola.delay.mq.broker.producer.Producer;
 import org.finalcola.delay.mq.broker.producer.RocketProducer;
 import org.finalcola.delay.mq.common.proto.DelayMsg;
-import org.joda.time.DateTime;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -40,25 +39,28 @@ public class MessageOutput {
         this.metaHolder = metaHolder;
         this.mqConfig = mqConfig;
         this.scanner = scanner;
+        this.producer = createProducer();
     }
 
+    public MessageOutput(int partitionId, MetaHolder metaHolder, Producer producer, Scanner scanner) {
+        this.metaHolder = metaHolder;
+        this.partitionId = partitionId;
+        this.mqConfig = null;
+        this.producer = producer;
+        this.scanner = scanner;
+    }
 
     public void start() {
-        producer = createProducer();
         producer.start(mqConfig);
         isRunning = true;
 
         ExecutorDef.MSG_OUTPUT_EXECUTOR.submit(() -> {
-            if (isRunning) {
+            while (isRunning) {
                 try {
                     long count = this.sendMsg();
                     if (count <= 0) {
                         // 到期消息已经处理完成或者出现异常进行退让
-                        long nextExecuteTime = DateTime.now().plusSeconds(1).withMillisOfSecond(0).getMillis();
-                        long gap = nextExecuteTime - System.currentTimeMillis();
-                        if (gap > 0) {
-                            TimeUnit.MILLISECONDS.sleep(gap);
-                        }
+                        TimeUnit.MILLISECONDS.sleep(100);
                     }
                 } catch (Exception e) {
                     log.error("message output error", e);
@@ -93,7 +95,8 @@ public class MessageOutput {
                 sendFail = true;
                 break;
             }
-            metaHolder.setLastHandledKey(lastHandledKey, lastMsgStoreKey);
+            metaHolder.setLastHandledKey(lastMsgStoreKey);
+            startKey = lastMsgStoreKey;
             counter += delayMsgs.size();
         }
         return sendFail ? -1 : counter;
