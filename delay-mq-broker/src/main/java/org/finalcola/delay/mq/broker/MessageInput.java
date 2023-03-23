@@ -1,5 +1,6 @@
 package org.finalcola.delay.mq.broker;
 
+import com.google.common.annotations.VisibleForTesting;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -39,10 +40,18 @@ public class MessageInput implements Runnable {
         this.partitionId = partitionId;
         this.mqConfig = mqConfig;
         this.store = store;
+        this.consumer = createConsumer(mqConfig);
+    }
+
+    @VisibleForTesting
+    public MessageInput(int partitionId, RocksDBStore store, Consumer consumer) {
+        this.partitionId = partitionId;
+        this.store = store;
+        this.mqConfig = null;
+        this.consumer = consumer;
     }
 
     public synchronized void start() {
-        consumer = createConsumer(mqConfig);
         isRunning = true;
         ExecutorDef.MSG_INPUT_EXECUTOR.submit(() -> {
             while (isRunning) {
@@ -80,8 +89,10 @@ public class MessageInput implements Runnable {
                     return new KeyValuePair(key, value);
                 })
                 .collect(Collectors.toList());
+        log.debug("write message to rocksDB, partition:{} size:{}", partitionId, keyValuePairs.size());
         RetryUtils.retry(10, () -> {
             store.put(partitionId, keyValuePairs);
+            consumer.commitOffset();
         });
     }
 

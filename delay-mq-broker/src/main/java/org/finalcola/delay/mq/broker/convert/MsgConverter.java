@@ -36,8 +36,9 @@ public class MsgConverter {
 
     public static ByteBuffer buildKey(@Nonnull DelayMsg msg) {
         MetaData metaData = msg.getMetaData();
+        long expireTime = metaData.getDelayMills() + metaData.getCreateTimestamp();
         String keyStr = Joiner.on("|")
-                .join(metaData.getDelayMills(), metaData.getTopic(), metaData.getMsgId());
+                .join(expireTime, metaData.getTopic(), metaData.getMsgId());
         return toByteBuffer(keyStr);
     }
 

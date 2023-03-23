@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.finalcola.delay.mq.common.proto.DelayMsg;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
@@ -14,8 +15,8 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 public class ScanResult {
-  @Nullable
-  private final String lastMsgStoreKey;
-  @Nullable
-  private final List<DelayMsg> delayMsgs;
+    @Nullable
+    private final String lastMsgStoreKey;
+    @Nonnull
+    private final List<DelayMsg> delayMsgs;
 }

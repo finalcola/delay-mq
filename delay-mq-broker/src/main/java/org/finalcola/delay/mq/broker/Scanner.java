@@ -26,9 +26,13 @@ public class Scanner {
     private final BrokerConfig brokerConfig;
     private final RocksDBStore rocksDBStore;
 
-    @SneakyThrows
     public ScanResult scan(int partitionId, String startKey, boolean includeStart) {
         ByteBuffer endKey = toByteBuffer(String.valueOf(System.currentTimeMillis()));
+        return scan(partitionId, startKey, includeStart, endKey);
+    }
+
+    @SneakyThrows
+    public ScanResult scan(int partitionId, String startKey, boolean includeStart, ByteBuffer endKey) {
         final ByteBuffer startKeyBuffer = toByteBuffer(startKey);
         int counter = 0;
         List<DelayMsg> delayMsgs = new ArrayList<>();

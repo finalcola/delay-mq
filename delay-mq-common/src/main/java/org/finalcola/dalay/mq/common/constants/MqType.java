@@ -7,5 +7,6 @@ package org.finalcola.dalay.mq.common.constants;
 public enum MqType {
     ROCKET_MQ,
     KAFKA,
+    MOCK,
     ;
 }
