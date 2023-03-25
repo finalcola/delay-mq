@@ -11,4 +11,5 @@ public class Constants {
 
     public static final String PRODUCER_GROUP = "delay-mq-producer-group";
 
+    public static final String META_DATA_STORE_KEY = "meta-data";
 }

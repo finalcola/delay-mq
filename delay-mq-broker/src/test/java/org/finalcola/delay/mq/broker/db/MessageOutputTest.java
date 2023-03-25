@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.finalcola.dalay.mq.common.constants.MqType.MOCK;
+
 /**
  * @author: finalcola
  * @date: 2023/3/23 22:35
@@ -52,7 +54,8 @@ public class MessageOutputTest {
 
         BrokerConfig brokerConfig = BrokerConfig.builder().scanMsgBatchSize(10).build();
         MockProducer producer = new MockProducer(msgCount);
-        MessageOutput output = new MessageOutput(0, new MetaHolder(), producer, new Scanner(brokerConfig, rocksDBStore));
+        Scanner scanner = new Scanner(brokerConfig, rocksDBStore);
+        MessageOutput output = new MessageOutput(0, new MetaHolder(rocksDBStore, MOCK), producer, scanner);
         output.start();
 
         try {

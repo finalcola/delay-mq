@@ -1,7 +1,6 @@
 package org.finalcola.delay.mq.broker.db;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
 import org.finalcola.delay.mq.broker.model.KeyValuePair;
 import org.rocksdb.*;
@@ -16,8 +15,6 @@ import java.util.List;
  */
 @AllArgsConstructor
 public class RocksDBAccess {
-    @Getter
-    private final int partitionId;
     private final RocksDB rocksDB;
     private final ColumnFamilyHandle handle;
     private final WriteOptions writeOptions = new WriteOptions()
@@ -45,5 +42,9 @@ public class RocksDBAccess {
 
     public void deleteRange(@Nonnull ByteBuffer start, @Nonnull ByteBuffer end) throws RocksDBException {
         rocksDB.deleteRange(handle, writeOptions, start.array(), end.array());
+    }
+
+    public ByteBuffer get(@Nonnull ByteBuffer key) throws RocksDBException {
+        return ByteBuffer.wrap(rocksDB.get(handle, key.array()));
     }
 }

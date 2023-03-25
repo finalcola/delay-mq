@@ -11,7 +11,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum ColumnFamilyType {
     DEFAULT("default"),
-    MSG_PARTITION("msg_partition"),
+    META_DATA("meta_data"),
     ;
     private final String name;
 }

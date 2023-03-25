@@ -8,6 +8,7 @@ import org.rocksdb.*;
 import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -31,7 +32,8 @@ public class RocksDBStore {
     private List<ColumnFamilyDescriptor> cfDescriptors;
     private List<ColumnFamilyHandle> cfHandles;
     private ColumnFamilyOptions cfOptions;
-    private Map<Integer, RocksDBAccess> rocksDBAccessMap;
+    private Map<Integer, RocksDBAccess> partitionDataAccessMap;
+    private Map<ColumnFamilyType, RocksDBAccess> innerDataAccessMap;
 
     public RocksDBStore(@Nonnull RocksDBConfig config) {
         this.config = config;
@@ -42,9 +44,16 @@ public class RocksDBStore {
         initCfDescriptors();
         cfHandles = new ArrayList<>();
         rocksDB = RocksDB.open(dbOptions, config.getPath(), cfDescriptors, cfHandles);
-        rocksDBAccessMap = IntStream.range(0, config.getPartitionCount())
-                .mapToObj(index -> new RocksDBAccess(index, rocksDB, cfHandles.get(index + 1)))
-                .collect(Collectors.toMap(RocksDBAccess::getPartitionId, Function.identity()));
+
+        // 内部数据
+        innerDataAccessMap = Arrays.stream(ColumnFamilyType.values())
+                .collect(Collectors.toMap(Function.identity(), type -> new RocksDBAccess(rocksDB, cfHandles.get(type.ordinal()))));
+
+        // 分区数据
+        partitionDataAccessMap = IntStream.range(0, config.getPartitionCount()).boxed()
+                .collect(Collectors.toMap(Function.identity(), index ->
+                        new RocksDBAccess(rocksDB, cfHandles.get(index + ColumnFamilyType.values().length))));
+
         isRunning = true;
     }
 
@@ -55,30 +64,42 @@ public class RocksDBStore {
     }
 
     public void put(int partitionId, @Nonnull List<KeyValuePair> keyValuePairs) throws RocksDBException {
-        rocksDBAccessMap.get(partitionId).batchPut(keyValuePairs);
+        partitionDataAccessMap.get(partitionId).batchPut(keyValuePairs);
     }
 
     public void deleteRange(int partitionId, @Nonnull ByteBuffer start, @Nonnull ByteBuffer end) throws RocksDBException {
-        rocksDBAccessMap.get(partitionId).deleteRange(start, end);
+        partitionDataAccessMap.get(partitionId).deleteRange(start, end);
     }
 
     public RocksDBRangeIterator range(int partitionId, @Nonnull ByteBuffer start, @Nonnull ByteBuffer end) {
-        return rocksDBAccessMap.get(partitionId).range(start, end);
+        return partitionDataAccessMap.get(partitionId).range(start, end);
+    }
+
+    public ByteBuffer getInnerData(@Nonnull ColumnFamilyType type, @Nonnull ByteBuffer key) throws RocksDBException {
+        return innerDataAccessMap.get(type).get(key);
+    }
+
+    public void putInnerData(@Nonnull ColumnFamilyType type, @Nonnull ByteBuffer key, @Nonnull ByteBuffer value) throws RocksDBException {
+        innerDataAccessMap.get(type).put(new KeyValuePair(key, value));
     }
 
     private void initCfDescriptors() {
         // 初始化cf配置
         initCfOptions();
         int partitionCount = config.getPartitionCount();
-        // 每个分区对应一个表
-        List<ColumnFamilyDescriptor> descriptors = IntStream.range(0, partitionCount)
+        // 存放元数据的cf
+        List<ColumnFamilyDescriptor> descriptors = Arrays.stream(ColumnFamilyType.values())
+                .map(ColumnFamilyType::getName)
+                .map(name -> new ColumnFamilyDescriptor(name.getBytes(UTF_8), cfOptions))
+                .collect(Collectors.toList());
+        // 数据分区，每个分区对应一个表
+        IntStream.range(0, partitionCount)
                 .mapToObj(index -> {
-                    String cfName = ColumnFamilyType.MSG_PARTITION.getName().toLowerCase() + "_" + index;
+                    String cfName = "msg_partition_" + index;
                     ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
                     return new ColumnFamilyDescriptor(cfName.getBytes(UTF_8), cfOptions);
                 })
-                .collect(Collectors.toList());
-        descriptors.add(0, new ColumnFamilyDescriptor(ColumnFamilyType.DEFAULT.getName().getBytes(UTF_8)));
+                .forEach(descriptors::add);
         cfDescriptors = descriptors;
     }
 

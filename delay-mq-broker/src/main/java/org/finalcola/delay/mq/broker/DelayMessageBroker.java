@@ -20,7 +20,7 @@ public class DelayMessageBroker {
     private final BrokerConfig brokerConfig;
     private final MqConfig mqConfig;
     private final RocksDBConfig rocksDBConfig;
-    private MetaHolder metaHolder = new MetaHolder();
+    private MetaHolder metaHolder;
 
     private RocksDBStore rocksDBStore;
     private Scanner scanner;
@@ -31,13 +31,15 @@ public class DelayMessageBroker {
         this.brokerConfig = brokerConfig;
         this.mqConfig = mqConfig;
         this.rocksDBConfig = rocksDBConfig;
+        this.rocksDBStore = new RocksDBStore(rocksDBConfig);
+        this.metaHolder = new MetaHolder(rocksDBStore, mqConfig.getMqType());
     }
 
     @SneakyThrows
     public synchronized void start() {
         // 初始化DB
-        rocksDBStore = new RocksDBStore(rocksDBConfig);
         rocksDBStore.start();
+        metaHolder.start();
         // 初始化scanner
         scanner = new Scanner(brokerConfig, rocksDBStore);
         initMessageInput();
