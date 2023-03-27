@@ -10,6 +10,7 @@
     <modules>
         <module>delay-mq-broker</module>
         <module>delay-mq-common</module>
+        <module>delay-mq-client</module>
     </modules>
     <packaging>pom</packaging>
 
