@@ -39,6 +39,11 @@
                 <artifactId>delay-mq-common</artifactId>
                 <version>${projectVersion}</version>
             </dependency>
+            <dependency>
+                <groupId>org.finalcola</groupId>
+                <artifactId>delay-mq-client</artifactId>
+                <version>${projectVersion}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

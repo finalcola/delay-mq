@@ -52,6 +52,7 @@ public class MessageInput implements Runnable {
     }
 
     public synchronized void start() {
+        consumer.start(mqConfig);
         isRunning = true;
         ExecutorDef.MSG_INPUT_EXECUTOR.submit(() -> {
             while (isRunning) {
@@ -89,7 +90,7 @@ public class MessageInput implements Runnable {
                     return new KeyValuePair(key, value);
                 })
                 .collect(Collectors.toList());
-        log.debug("write message to rocksDB, partition:{} size:{}", partitionId, keyValuePairs.size());
+        log.info("write message to rocksDB, partition:{} size:{}", partitionId, keyValuePairs.size());
         RetryUtils.retry(10, () -> {
             store.put(partitionId, keyValuePairs);
             consumer.commitOffset();

@@ -25,8 +25,12 @@ public class RocketConsumer implements Consumer {
     private DefaultLitePullConsumer consumer;
 
     @Override
+    @SneakyThrows
     public void start(MqConfig config) {
         this.mqConfig = config;
+        this.consumer = createConsumer();
+        this.consumer.start();
+        this.isRunning = true;
     }
 
     @Override
@@ -56,13 +60,12 @@ public class RocketConsumer implements Consumer {
         consumer.commitSync();
     }
 
-    private void createConsumer() throws MQClientException {
-        this.consumer = new DefaultLitePullConsumer(Constants.CONSUMER_GROUP);
+    private DefaultLitePullConsumer createConsumer() throws MQClientException {
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer(Constants.CONSUMER_GROUP);
         consumer.subscribe(Constants.DELAY_MSG_TOPIC, "*");
         consumer.setPullBatchSize(mqConfig.getPullBatchSize());
         consumer.setAutoCommit(false); // 手动提交
         consumer.setNamesrvAddr(mqConfig.getBrokerAddr());
-        consumer.start();
-        isRunning = true;
+        return consumer;
     }
 }

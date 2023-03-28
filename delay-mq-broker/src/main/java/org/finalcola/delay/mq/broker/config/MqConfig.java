@@ -1,6 +1,9 @@
 package org.finalcola.delay.mq.broker.config;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.finalcola.dalay.mq.common.constants.MqType;
 
 /**
@@ -8,6 +11,9 @@ import org.finalcola.dalay.mq.common.constants.MqType;
  * @date: 2023/3/17 23:27
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class MqConfig {
     private String brokerAddr; // broker地址
     private Integer pullBatchSize; // 每次pull的消息数量
