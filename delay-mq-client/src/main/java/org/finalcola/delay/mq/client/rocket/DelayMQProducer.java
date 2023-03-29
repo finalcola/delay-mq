@@ -1,5 +1,6 @@
 package org.finalcola.delay.mq.client.rocket;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -16,6 +17,8 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 /**
  * @author: finalcola
@@ -56,11 +59,12 @@ public class DelayMQProducer extends DefaultMQProducer implements RocketDelayPro
         return CollectionUtils.emptyIfNull(msgs).stream()
                 .map(msg -> {
                     MsgDataWrapper dataWrapper = MsgDataWrapper.newBuilder()
-                            .setMsgKey(msg.getKeys())
+                            .setMsgKey(trimToEmpty(msg.getKeys()))
                             .setCreateTime(System.currentTimeMillis())
                             .setDelayMills(delayDuration.toMillis())
                             .setTopic(msg.getTopic())
-                            .setTags(msg.getTags())
+                            .setTags(trimToEmpty(msg.getTags()))
+                            .setData(ByteString.copyFrom(msg.getBody()))
                             .build();
                     return new Message(Constants.DELAY_MSG_TOPIC, dataWrapper.toByteArray());
                 })

@@ -83,6 +83,7 @@ public class MessageInput implements Runnable {
         if (CollectionUtils.isEmpty(delayMsgs)) {
             return;
         }
+        pollMessageHook(delayMsgs);
         List<KeyValuePair> keyValuePairs = delayMsgs.stream()
                 .map(msg -> {
                     ByteBuffer key = MsgConverter.buildKey(msg);
@@ -95,6 +96,10 @@ public class MessageInput implements Runnable {
             store.put(partitionId, keyValuePairs);
             consumer.commitOffset();
         });
+    }
+
+    protected void pollMessageHook(List<DelayMsg> delayMsgs) {
+        // do nothing
     }
 
     private Consumer createConsumer(MqConfig mqConfig) {

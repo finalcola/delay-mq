@@ -90,7 +90,11 @@ public class MessageOutput {
             }
             // 发送消息
             List<DelayMsg> delayMsgs = scanResult.getDelayMsgs();
-            Boolean sendResult = RetryUtils.retry(10, () -> producer.send(delayMsgs));
+            Boolean sendResult = RetryUtils.retry(10, () -> {
+                boolean send = producer.send(delayMsgs);
+                produceMessageHook(delayMsgs);
+                return send;
+            });
             if (!sendResult) {
                 sendFail = true;
                 break;
@@ -100,6 +104,10 @@ public class MessageOutput {
             counter += delayMsgs.size();
         }
         return sendFail ? -1 : counter;
+    }
+
+    protected void produceMessageHook(List<DelayMsg> delayMsgs) {
+        // hook
     }
 
     private Producer createProducer() {

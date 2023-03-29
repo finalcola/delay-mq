@@ -9,6 +9,7 @@ import org.finalcola.delay.mq.broker.MessageInput;
 import org.finalcola.delay.mq.broker.config.MqConfig;
 import org.finalcola.delay.mq.broker.config.RocksDBConfig;
 import org.finalcola.delay.mq.client.rocket.DelayMQProducer;
+import org.finalcola.delay.mq.common.proto.DelayMsg;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -16,6 +17,7 @@ import org.junit.rules.TemporaryFolder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -47,16 +49,26 @@ public class MessageProduceTest {
                 .pullBatchSize(100)
                 .sendRetryTimes(10)
                 .build();
-        MessageInput messageInput = new MessageInput(0, mqConfig, store);
+        List<Message> messages = makeMsg();
+        CountDownLatch countDownLatch = new CountDownLatch(messages.size());
+
+        MessageInput messageInput = new MessageInput(0, mqConfig, store) {
+            @Override
+            protected void pollMessageHook(List<DelayMsg> delayMsgs) {
+                for (int i = 0; i < delayMsgs.size(); i++) {
+                    countDownLatch.countDown();
+                }
+            }
+        };
         messageInput.start();
 
         DelayMQProducer delayMQProducer = buildMQProducer();
         try {
             delayMQProducer.start();
             for (int i = 0; i < 10; i++) {
-                delayMQProducer.sendDelayMessage(makeMsg(), Duration.ofMinutes(1));
+                delayMQProducer.sendDelayMessage(messages, Duration.ofMinutes(1));
             }
-            TimeUnit.SECONDS.sleep(5);
+            countDownLatch.await(10, TimeUnit.SECONDS);
         } finally {
             delayMQProducer.shutdown();
             MoreFunctions.runCatching(messageInput::stop);
