@@ -33,6 +33,7 @@ public class PropertyUtils {
     public static <T> T readPropertiesConfig(@Nonnull Class<T> klass) {
         Properties properties = readProperties(klass);
         if (properties == null) {
+            logger.warn("readPropertiesConfig({}) fail, file not found", klass.getName());
             return null;
         }
 
@@ -41,9 +42,14 @@ public class PropertyUtils {
             List<Field> fields = getFields(klass);
             for (Field field : fields) {
                 Property property = field.getAnnotation(Property.class);
-                String key = StringUtils.defaultIfBlank(property.value(), field.getName());
-                String value = properties.getProperty(key, property.defaultValue());
-                // TODO: 2023/3/30 对象映射
+                String key = Optional.ofNullable(property)
+                        .map(Property::value)
+                        .filter(StringUtils::isNotBlank)
+                        .orElseGet(field::getName);
+                String value = properties.getProperty(key, property == null ? "" : property.defaultValue());
+                Object convertedValue = TypeConverter.convert(field.getType(), value);
+                // TODO: 2023/3/31 递归构建
+                field.set(instance, convertedValue);
             }
             return instance;
         } catch (Exception e) {
