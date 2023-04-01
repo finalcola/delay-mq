@@ -1,22 +1,22 @@
 package org.finalcola.dalay.mq.common.utils;
 
-import org.apache.commons.codec.Resources;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.finalcola.dalay.mq.common.constants.Property;
 import org.finalcola.dalay.mq.common.constants.PropertyMapping;
+import org.finalcola.dalay.mq.common.exception.ApiException;
+import org.finalcola.dalay.mq.common.exception.ResultCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,13 +46,16 @@ public class PropertyUtils {
                         .map(Property::value)
                         .filter(StringUtils::isNotBlank)
                         .orElseGet(field::getName);
+                if (property != null && property.required() && !properties.containsKey(key)) {
+                    throw new ApiException(ResultCode.CONFIG_ERROR, String.format("缺少必要参数:%s.%s", klass.getSimpleName(), key));
+                }
                 String value = properties.getProperty(key, property == null ? "" : property.defaultValue());
                 Object convertedValue = TypeConverter.convert(field.getType(), value);
                 // TODO: 2023/3/31 递归构建
                 field.set(instance, convertedValue);
             }
             return instance;
-        } catch (Exception e) {
+        } catch (ReflectiveOperationException e) {
             logger.error("read config error,config class:{}", klass.getName(), e);
             return null;
         }
@@ -72,7 +75,7 @@ public class PropertyUtils {
     public static Properties readResourceProperties(@Nonnull String filePath) {
         String content = readResourceFile(filePath);
         if (StringUtils.isEmpty(content)) {
-            return null;
+            return new Properties();
         }
         Properties properties = new Properties();
         String[] lines = content.split("\n");
@@ -95,12 +98,14 @@ public class PropertyUtils {
 
     @Nullable
     public static String readResourceFile(@Nonnull String filePath) {
-        try (InputStream configFileInputStream = Resources.getInputStream(filePath);
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            IOUtils.copyLarge(configFileInputStream, outputStream);
-            return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            logger.error("read properties error", e);
+        URL fileUrl = Thread.currentThread().getContextClassLoader().getResource(filePath);
+        if (fileUrl == null) {
+            return null;
+        }
+        try {
+            return new String(Files.readAllBytes(Paths.get(fileUrl.toURI())), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            logger.error("read resource({}) error", fileUrl, e);
             return null;
         }
     }

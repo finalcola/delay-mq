@@ -12,7 +12,7 @@ public class ApiException extends RuntimeException {
     private final String customMessage;
 
     public ApiException(int errorCode, String customMessage) {
-        super();
+        super(customMessage);
         this.errorCode = errorCode;
         this.customMessage = customMessage;
     }

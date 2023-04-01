@@ -16,5 +16,7 @@ public @interface Property {
 
     String desc();
 
-    String defaultValue();
+    boolean required() default false;
+
+    String defaultValue() default "";
 }

@@ -3,6 +3,7 @@ package org.finalcola.delay.mq.broker;
 import lombok.SneakyThrows;
 import org.finalcola.delay.mq.broker.config.BrokerConfig;
 import org.finalcola.delay.mq.broker.config.MqConfig;
+import org.finalcola.delay.mq.broker.config.PropertyConfigFactory;
 import org.finalcola.delay.mq.broker.config.RocksDBConfig;
 import org.finalcola.delay.mq.broker.db.RocksDBStore;
 
@@ -17,9 +18,9 @@ import java.util.stream.IntStream;
  */
 public class DelayMessageBroker {
 
-    private final BrokerConfig brokerConfig;
-    private final MqConfig mqConfig;
-    private final RocksDBConfig rocksDBConfig;
+    private final BrokerConfig brokerConfig = PropertyConfigFactory.createConfig(BrokerConfig.class);
+    private final MqConfig mqConfig = PropertyConfigFactory.createConfig(MqConfig.class);
+    private final RocksDBConfig rocksDBConfig = PropertyConfigFactory.createConfig(RocksDBConfig.class);
     private MetaHolder metaHolder;
 
     private RocksDBStore rocksDBStore;
@@ -27,10 +28,7 @@ public class DelayMessageBroker {
     private Map<Integer, MessageInput> messageInputMap;
     private Map<Integer, MessageOutput> messageOutputMap;
 
-    public DelayMessageBroker(BrokerConfig brokerConfig, MqConfig mqConfig, RocksDBConfig rocksDBConfig) {
-        this.brokerConfig = brokerConfig;
-        this.mqConfig = mqConfig;
-        this.rocksDBConfig = rocksDBConfig;
+    public DelayMessageBroker() {
         this.rocksDBStore = new RocksDBStore(rocksDBConfig);
         this.metaHolder = new MetaHolder(rocksDBStore, mqConfig.getMqType());
     }
