@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * @author: finalcola
@@ -46,10 +47,11 @@ public class PropertyUtils {
                         .map(Property::value)
                         .filter(StringUtils::isNotBlank)
                         .orElseGet(field::getName);
-                if (property != null && property.required() && !properties.containsKey(key)) {
-                    throw new ApiException(ResultCode.CONFIG_ERROR, String.format("缺少必要参数:%s.%s", klass.getSimpleName(), key));
+                String value = resolveValue(key, properties, property == null ? null : property.defaultValue());
+                if (value == null && property != null && property.required()) {
+                    throw new ApiException(ResultCode.CONFIG_ERROR, "miss config:" + key);
                 }
-                String value = properties.getProperty(key, property == null ? "" : property.defaultValue());
+
                 Object convertedValue = TypeConverter.convert(field.getType(), value);
                 // TODO: 2023/3/31 递归构建
                 field.set(instance, convertedValue);
@@ -59,6 +61,27 @@ public class PropertyUtils {
             logger.error("read config error,config class:{}", klass.getName(), e);
             return null;
         }
+    }
+
+    public static String resolveValue(String key, Properties properties, String defaultValue) {
+        if (StringUtils.isBlank(key)) {
+            return "";
+        }
+        List<Function<String, String>> valueGetters = new ArrayList<>();
+        valueGetters.add(properties::getProperty); // 优先从配置文件中取
+        valueGetters.add(PropertyUtils::getValueFromEnvironment); // 其次从环境变量中取
+        valueGetters.add(k -> defaultValue); // 都没有则取注解上的默认值
+
+        return valueGetters.stream()
+                .map(getter -> getter.apply(key))
+                .filter(Objects::nonNull)
+                .findFirst().orElse(null);
+    }
+
+    @Nullable
+    private static String getValueFromEnvironment(String key) {
+        return Optional.ofNullable(System.getProperty(key))
+                .orElseGet(() -> System.getenv(key));
     }
 
     @Nullable
